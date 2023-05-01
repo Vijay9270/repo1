@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Noise Meter</title>
+  <style>
+    #meter {
+      width: 400px;
+      height: 20px;
+      border: 1px solid black;
+      position: relative;
+    }
+    #level {
+      width: 0%;
+      height: 100%;
+      background-color: green;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    #db {
+      position: absolute;
+      top: -30px;
+      left: 0;
+      font-size: 16px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Noise Meter</h1>
+  <div id="meter">
+    <div id="level"></div>
+    <div id="db">0 dB</div>
+  </div>
+
+  <script>
+    // Create an AudioContext
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Create a script processor node
+    const scriptNode = audioContext.createScriptProcessor(1024, 1, 1);
+    scriptNode.connect(audioContext.destination);
+
+    // Create a media stream from the user's microphone
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(function(stream) {
+        // Create a media stream source from the microphone
+        const sourceNode = audioContext.createMediaStreamSource(stream);
+        sourceNode.connect(scriptNode);
+      })
+      .catch(function(error) {
+        console.error(error);
+      });
+
+    // When the script processor node is ready, start processing audio data
+    scriptNode.onaudioprocess = function(event) {
+      // Get the average decibel level of the audio data
+      const buffer = event.inputBuffer.getChannelData(0);
+      let sum = 0;
+      for (let i = 0; i < buffer.length; i++) {
+        sum += Math.abs(buffer[i]);
+      }
+      const average = sum / buffer.length;
+      const db = 20 * Math.log10(average);
+
+      // Update the meter level and dB value
+      const meterWidth = Math.min(100, Math.max(0, (db + 120) * (100 / 120)));
+      const meterElement = document.getElementById('level');
+      const dbElement = document.getElementById('db');
+      meterElement.style.width = meterWidth + '%';
+      dbElement.textContent = Math.round(db) + ' dB';
+    };
+  </script>
+</body>
+</html>
